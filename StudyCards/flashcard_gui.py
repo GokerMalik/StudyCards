@@ -2,11 +2,13 @@ import random
 import tkinter as tk
 import tkinter.simpledialog
 
+#define the flashcard class
 class Flashcard:
     def __init__(self, front, back):
         self.front = front
         self.back = back
 
+#define the deck class
 class Deck:
     def __init__(self, name):
         self.name = name
@@ -18,6 +20,7 @@ class Deck:
     def remove_card(self, index):
         self.cards.pop(index)
 
+#define caregory class
 class Category:
     def __init__(self, name):
         self.name = name
@@ -29,6 +32,7 @@ class Category:
     def remove_deck(self, index):
         self.decks.pop(index)
 
+#define the application
 class FlashcardApplication:
     def __init__(self):
         self.categories = []
@@ -57,6 +61,7 @@ class FlashcardApplication:
         card = random.choice(deck.cards)
         return card.front, card.back
 
+#Create the interface elements
 class FlashcardGUI:
     def __init__(self, app):
         self.app = app
