@@ -4,7 +4,7 @@
     <SchemaVersion>2.0</SchemaVersion>
     <ProjectGuid>f38bfbcf-7a84-4ba6-8a38-470e9a8f9c0c</ProjectGuid>
     <ProjectHome>.</ProjectHome>
-    <StartupFile>StudyCards.py</StartupFile>
+    <StartupFile>EntryPoint.py</StartupFile>
     <SearchPath>
     </SearchPath>
     <WorkingDirectory>.</WorkingDirectory>
@@ -21,7 +21,8 @@
     <EnableUnmanagedDebugging>false</EnableUnmanagedDebugging>
   </PropertyGroup>
   <ItemGroup>
-    <Compile Include="StudyCards.py" />
+    <Compile Include="EntryPoint.py" />
+    <Compile Include="flashcard_gui.py" />
   </ItemGroup>
   <Import Project="$(MSBuildExtensionsPath32)\Microsoft\VisualStudio\v$(VisualStudioVersion)\Python Tools\Microsoft.PythonTools.targets" />
   <!-- Uncomment the CoreCompile target to enable the Build command in
