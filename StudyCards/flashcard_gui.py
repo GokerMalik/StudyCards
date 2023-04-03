@@ -1,6 +1,9 @@
 import random
 import tkinter as tk
 import tkinter.simpledialog
+import tkinter.filedialog
+
+import json
 
 #define the flashcard class
 class Flashcard:
@@ -120,6 +123,13 @@ class FlashcardGUI:
         self.back_textbox = tk.Text(self.card_frame, height=5, width=50)
         self.back_textbox.pack(side=tk.TOP)
 
+        self.menu_bar = tk.Menu(self.root)
+        self.file_menu = tk.Menu(self.menu_bar, tearoff=0)
+        self.file_menu.add_command(label="Save", command=self.save)
+        self.file_menu.add_command(label="Open", command=self.open)
+        self.menu_bar.add_cascade(label="File", menu=self.file_menu)
+        self.root.config(menu=self.menu_bar)
+
         self.update_categories_listbox()
 
     def update_categories_listbox(self):
@@ -200,3 +210,52 @@ class FlashcardGUI:
             else:
                 tk.messagebox.showerror("Error", "This deck has no cards.")
 
+    def save(self):
+        file_path = tk.filedialog.asksaveasfilename(defaultextension=".json")
+        if file_path:
+            with open(file_path, "w") as f:
+                categories_json = []
+                for category in self.app.categories:
+                    decks_json = []
+                    for deck in category.decks:
+                        cards_json = []
+                        for card in deck.cards:
+                            cards_json.append({
+                                "front": card.front,
+                                "back": card.back
+                            })
+                        decks_json.append({
+                            "name": deck.name,
+                            "cards": cards_json
+                        })
+                    categories_json.append({
+                        "name": category.name,
+                        "decks": decks_json
+                    })
+                json.dump(categories_json, f)
+
+    def open(self):
+        file_path = tk.filedialog.askopenfilename(defaultextension=".json")
+        if file_path:
+            with open(file_path, "r") as f:
+                categories_json = json.load(f)
+                categories = []
+                for category_json in categories_json:
+                    category_name = category_json["name"]
+                    cur_category = Category(category_name)
+                    decks_json = category_json["decks"]
+                    for deck_json in decks_json:
+                        deck_name = deck_json["name"]
+                        cards_json = deck_json["cards"]
+                        cur_deck = Deck(deck_name)
+                        cards = []
+                        for card_json in cards_json:
+                            front = card_json["front"]
+                            back = card_json["back"]
+                            cur_card = Flashcard(front, back)
+                            cards.append(cur_card)
+                            cur_deck.add_card(cur_card)
+                        cur_category.add_deck(deck_name)
+                    categories.append(cur_category)
+                self.app.categories = categories
+                self.update_categories_listbox()
