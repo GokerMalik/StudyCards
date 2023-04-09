@@ -78,14 +78,26 @@ class FlashcardGUI:
         self.root = tk.Tk()
         self.root.title("Flashcards")
 
-        self.category_frame = tk.Frame(self.root)
-        self.category_frame.pack(side=tk.LEFT)
+        self.left_frame = tk.Frame(self.root)
+        self.left_frame.pack(side = tk.LEFT)
 
-        self.deck_frame = tk.Frame(self.root)
-        self.deck_frame.pack(side=tk.LEFT)
+        self.mid_frame = tk.Frame(self.root)
+        self.mid_frame.pack(side = tk.LEFT)
 
-        self.card_frame = tk.Frame(self.root)
-        self.card_frame.pack(side=tk.LEFT)
+        self.right_frame = tk.Frame(self.root)
+        self.right_frame.pack(side = tk.LEFT)
+
+        self.category_frame = tk.Frame(self.left_frame)
+        self.category_frame.pack(side=tk.TOP)
+
+        self.deck_frame = tk.Frame(self.left_frame)
+        self.deck_frame.pack(side=tk.TOP)
+
+        self.session_frame = tk.Frame(self.mid_frame)
+        self.session_frame.pack(side = tk.TOP)
+
+        self.card_frame = tk.Frame(self.right_frame)
+        self.card_frame.pack(side=tk.TOP)
 
         self.categories_listbox = tk.Listbox(self.category_frame, selectmode=tk.SINGLE)
         self.categories_listbox.pack(side=tk.TOP)
@@ -107,6 +119,12 @@ class FlashcardGUI:
         self.remove_deck_button = tk.Button(self.deck_frame, text="Remove Deck", command=self.remove_deck)
         self.remove_deck_button.pack(side=tk.TOP)
 
+        self.session_screen = tk.Canvas(self.session_frame)
+        self.session_screen.pack(side = tk.TOP)
+
+        self.random_card_button = tk.Button(self.session_frame, text="Random Card", command=self.show_random_card)
+        self.random_card_button.pack(side=tk.TOP)
+
         self.cards_listbox = tk.Listbox(self.card_frame)
         self.cards_listbox.pack(side=tk.TOP)
 
@@ -116,19 +134,16 @@ class FlashcardGUI:
         self.remove_card_button = tk.Button(self.card_frame, text="Remove Card", command=self.remove_card)
         self.remove_card_button.pack(side=tk.TOP)
 
-        self.random_card_button = tk.Button(self.card_frame, text="Random Card", command=self.show_random_card)
-        self.random_card_button.pack(side=tk.TOP)
-
         self.front_label = tk.Label(self.card_frame, text="Front:")
         self.front_label.pack(side=tk.TOP)
 
-        self.front_textbox = tk.Text(self.card_frame, height=5, width=50)
+        self.front_textbox = tk.Text(self.card_frame, height=5, width=20)
         self.front_textbox.pack(side=tk.TOP)
 
         self.back_label = tk.Label(self.card_frame, text="Back:")
         self.back_label.pack(side=tk.TOP)
 
-        self.back_textbox = tk.Text(self.card_frame, height=5, width=50)
+        self.back_textbox = tk.Text(self.card_frame, height=5, width=20)
         self.back_textbox.pack(side=tk.TOP)
 
         self.menu_bar = tk.Menu(self.root)
@@ -141,33 +156,39 @@ class FlashcardGUI:
         self.update_categories_listbox()
 
     def category_select(self, event = None):
+        #fall here only when a selection is made. If category deleted, do not fall
         selected_categories = self.categories_listbox.curselection()
+
         if selected_categories:
-            self.update_decks_listbox(selected_categories[0])
+
+            #get index
             selected_category_index = selected_categories[0]
+
+            #update lisbox
+            self.update_decks_listbox(selected_category_index)
+            self.update_cards_listbox(selected_category_index, -1)
+
+            #set last category
             selected_category = self.app.categories[selected_category_index]
-            current_category_list = [selected_category]
-            self.app.lastCategory = current_category_list
+            self.app.lastCategory = [selected_category]
 
     def deck_select(self, event = None):
+        #fall here only when a selection is made. If deck deleted, do not fall
         selected_decks = self.decks_listbox.curselection()
 
         if selected_decks:
-            deck_index = selected_decks[0]
-        elif self.app.lastDeck:
-            deck_index = self.app.lastDeck[0].category.decks.index(self.app.lastDeck[0])
-        else:
-            deck_index = None
+            #get index
+            selected_deck_index = selected_decks[0]
 
-        deck_category = self.app.lastCategory[0]
+            #if a deck is selected, last category has to exist. Actions which may change deck selection without a last category are responsible for other scenarios
+            deck_category = self.app.lastCategory[0]
         
-        if deck_category:
-            self.update_cards_listbox(self.app.categories.index(deck_category), deck_index)
+            #update cardbox
+            self.update_cards_listbox(self.app.categories.index(deck_category), selected_deck_index)
 
-        if deck_index != None:
-            selected_deck = deck_category.decks[deck_index]
-            current_deck_list = [selected_deck]
-            self.app.lastDeck = current_deck_list
+            #set last deck
+            selected_deck = deck_category.decks[selected_deck_index]
+            self.app.lastDeck = [selected_deck]
 
     def update_categories_listbox(self):
         self.categories_listbox.delete(0, tk.END)
@@ -175,15 +196,16 @@ class FlashcardGUI:
             self.categories_listbox.insert(tk.END, category.name)
 
     def update_decks_listbox(self, selected_category_index):
-        selected_category = self.app.categories[selected_category_index]
         self.decks_listbox.delete(0, tk.END)
-        for deck in selected_category.decks:
-            self.decks_listbox.insert(tk.END, deck.name)
+
+        if selected_category_index >= 0:
+            selected_category = self.app.categories[selected_category_index]
+            for deck in selected_category.decks:
+                self.decks_listbox.insert(tk.END, deck.name)
 
     def update_cards_listbox(self, category_index, deck_index):
         self.cards_listbox.delete(0, tk.END)
-
-        if deck_index != None:
+        if category_index >= 0 and deck_index >=0:
             for card in self.app.categories[category_index].decks[deck_index].cards:
                 self.cards_listbox.insert(tk.END, card.front)
 
@@ -198,6 +220,8 @@ class FlashcardGUI:
         if category_index:
             self.app.remove_category(category_index[0])
             self.update_categories_listbox()
+            self.update_decks_listbox(-1)
+            self.update_cards_listbox(-1,-1)
         self.app.lastCategory = None
 
     def add_deck(self):
@@ -206,7 +230,31 @@ class FlashcardGUI:
         elif self.app.lastCategory:
             category_index = [self.app.categories.index(self.app.lastCategory[0])]
 
-        deck_name = tk.simpledialog.askstring("Add Deck", "Enter a name for the new deck:")
+        dialog = tk.Toplevel(self.root)
+        name_label = tk.Label(dialog, text= "Deck Name:")
+        name_label.pack(side = tk.TOP)
+
+        deck_name = tk.StringVar()
+
+        name_entry = tk.Entry(dialog, textvariable=deck_name)
+        name_entry.pack(side=tk.TOP)
+
+        ask_front_var = tk.BooleanVar(value = True)
+        ask_back_var = tk.BooleanVar(value = False)
+
+        frontCheckBox = tk.Checkbutton(dialog, text = "Ask front side", variable = ask_front_var)
+        backCheckBox = tk.Checkbutton(dialog, text = "Ask back side", variable = ask_back_var)
+
+        frontCheckBox.pack(side = tk.TOP)
+        backCheckBox.pack(side = tk.TOP)
+
+        create_button = tk.Button(dialog, text = 'Create', command=dialog.destroy)
+        create_button.pack(side=tk.TOP)
+
+        dialog.wait_window(dialog)
+
+        deck_name = deck_name.get()
+
         if deck_name:
             newDeck = Deck(self.app.categories[category_index[0]], deck_name)
             self.app.add_deck(category_index[0], newDeck)
@@ -219,7 +267,7 @@ class FlashcardGUI:
         if category_index and deck_index:
             self.app.remove_deck(category_index[0], deck_index[0])
             self.update_decks_listbox(category_index[0])
-            self.update_cards_listbox(category_index[0], None)
+            self.update_cards_listbox(category_index[0], -1)
         self.app.lastDeck = None
 
     def add_card(self):
