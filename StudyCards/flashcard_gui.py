@@ -7,30 +7,35 @@ import json
 
 #define the flashcard class
 class Flashcard:
-    def __init__(self, front, back):
+    def __init__(self, deck, front, back):
+        self.deck = deck
         self.front = front
         self.back = back
 
 #define the deck class
 class Deck:
-    def __init__(self, name):
+    def __init__(self, category, name):
         self.name = name
         self.cards = []
+        self.category = category
 
     def add_card(self, front, back):
-        self.cards.append(Flashcard(front, back))
+        self.cards.append(Flashcard(self, front, back))
 
     def remove_card(self, index):
         self.cards.pop(index)
 
-#define caregory class
+#define category class
 class Category:
     def __init__(self, name):
         self.name = name
         self.decks = []
 
     def add_deck(self, name):
-        self.decks.append(Deck(name))
+        self.decks.append(Deck(self, name))
+
+    def add_deck(self, deck):
+        self.decks.append(deck)
 
     def remove_deck(self, index):
         self.decks.pop(index)
@@ -39,6 +44,8 @@ class Category:
 class FlashcardApplication:
     def __init__(self):
         self.categories = []
+        self.lastCategory = None
+        self.lastDeck = None
 
     def add_category(self, name):
         self.categories.append(Category(name))
@@ -82,7 +89,7 @@ class FlashcardGUI:
 
         self.categories_listbox = tk.Listbox(self.category_frame, selectmode=tk.SINGLE)
         self.categories_listbox.pack(side=tk.TOP)
-        self.categories_listbox.bind("<<ListboxSelect>>", self.update_decks_listbox)
+        self.categories_listbox.bind("<<ListboxSelect>>", self.category_select)
 
         self.add_category_button = tk.Button(self.category_frame, text="Add Category", command=self.add_category)
         self.add_category_button.pack(side=tk.TOP)
@@ -92,6 +99,7 @@ class FlashcardGUI:
 
         self.decks_listbox = tk.Listbox(self.deck_frame, selectmode=tk.SINGLE)
         self.decks_listbox.pack(side=tk.TOP)
+        self.decks_listbox.bind("<<ListboxSelect>>", self.deck_select)
 
         self.add_deck_button = tk.Button(self.deck_frame, text="Add Deck", command=self.add_deck)
         self.add_deck_button.pack(side=tk.TOP)
@@ -132,24 +140,52 @@ class FlashcardGUI:
 
         self.update_categories_listbox()
 
+    def category_select(self, event = None):
+        selected_categories = self.categories_listbox.curselection()
+        if selected_categories:
+            self.update_decks_listbox(selected_categories[0])
+            selected_category_index = selected_categories[0]
+            selected_category = self.app.categories[selected_category_index]
+            current_category_list = [selected_category]
+            self.app.lastCategory = current_category_list
+
+    def deck_select(self, event = None):
+        selected_decks = self.decks_listbox.curselection()
+
+        if selected_decks:
+            deck_index = selected_decks[0]
+        elif self.app.lastDeck:
+            deck_index = self.app.lastDeck[0].category.decks.index(self.app.lastDeck[0])
+        else:
+            deck_index = None
+
+        deck_category = self.app.lastCategory[0]
+        
+        if deck_category:
+            self.update_cards_listbox(self.app.categories.index(deck_category), deck_index)
+
+        if deck_index != None:
+            selected_deck = deck_category.decks[deck_index]
+            current_deck_list = [selected_deck]
+            self.app.lastDeck = current_deck_list
+
     def update_categories_listbox(self):
         self.categories_listbox.delete(0, tk.END)
         for category in self.app.categories:
             self.categories_listbox.insert(tk.END, category.name)
 
-    def update_decks_listbox(self, event = None):
-        selected_categories = self.categories_listbox.curselection()
-        if selected_categories:
-            selected_category_index = selected_categories[0]
-            selected_category = self.app.categories[selected_category_index]
-            self.decks_listbox.delete(0, tk.END)
-            for deck in selected_category.decks:
-                self.decks_listbox.insert(tk.END, deck.name)
+    def update_decks_listbox(self, selected_category_index):
+        selected_category = self.app.categories[selected_category_index]
+        self.decks_listbox.delete(0, tk.END)
+        for deck in selected_category.decks:
+            self.decks_listbox.insert(tk.END, deck.name)
 
     def update_cards_listbox(self, category_index, deck_index):
         self.cards_listbox.delete(0, tk.END)
-        for card in self.app.categories[category_index].decks[deck_index].cards:
-            self.cards_listbox.insert(tk.END, card.front)
+
+        if deck_index != None:
+            for card in self.app.categories[category_index].decks[deck_index].cards:
+                self.cards_listbox.insert(tk.END, card.front)
 
     def add_category(self):
         category_name = tk.simpledialog.askstring("Add Category", "Enter a name for the new category:")
@@ -162,26 +198,34 @@ class FlashcardGUI:
         if category_index:
             self.app.remove_category(category_index[0])
             self.update_categories_listbox()
+        self.app.lastCategory = None
 
     def add_deck(self):
-        category_index = self.categories_listbox.curselection()
-        if category_index:
-            deck_name = tk.simpledialog.askstring("Add Deck", "Enter a name for the new deck:")
-            if deck_name:
-                self.app.add_deck(category_index[0], deck_name)
-                self.update_decks_listbox(category_index[0])
+        if self.categories_listbox.curselection():
+            category_index = self.categories_listbox.curselection()
+        elif self.app.lastCategory:
+            category_index = [self.app.categories.index(self.app.lastCategory[0])]
+
+        deck_name = tk.simpledialog.askstring("Add Deck", "Enter a name for the new deck:")
+        if deck_name:
+            newDeck = Deck(self.app.categories[category_index[0]], deck_name)
+            self.app.add_deck(category_index[0], newDeck)
+            self.update_decks_listbox(category_index[0])
+            self.app.lastDeck = [newDeck]
 
     def remove_deck(self):
-        category_index = self.categories_listbox.curselection()
         deck_index = self.decks_listbox.curselection()
+        category_index = [self.app.categories.index(self.app.lastCategory[0])]
         if category_index and deck_index:
             self.app.remove_deck(category_index[0], deck_index[0])
             self.update_decks_listbox(category_index[0])
-            self.update_cards_listbox(category_index[0], 0)
+            self.update_cards_listbox(category_index[0], None)
+        self.app.lastDeck = None
 
     def add_card(self):
-        category_index = self.categories_listbox.curselection()
         deck_index = self.decks_listbox.curselection()
+        category_index = [self.app.categories.index(self.app.lastCategory[0])]
+
         if category_index and deck_index:
             front_text = self.front_textbox.get("1.0", tk.END).strip()
             back_text = self.back_textbox.get("1.0", tk.END).strip()
@@ -192,9 +236,18 @@ class FlashcardGUI:
                 self.back_textbox.delete("1.0", tk.END)
 
     def remove_card(self):
-        category_index = self.categories_listbox.curselection()
-        deck_index = self.decks_listbox.curselection()
+
+        deck = self.app.lastDeck
+
         card_index = self.cards_listbox.curselection()
+
+        card = deck[0].cards[card_index[0]]
+        deck = card.deck
+        category = deck.category
+
+        deck_index = [category.decks.index(deck)]
+        category_index = [self.app.categories.index(category)]
+
         if category_index and deck_index and card_index:
             self.app.remove_card(category_index[0], deck_index[0], card_index[0])
             self.update_cards_listbox(category_index[0], deck_index[0])
@@ -247,15 +300,12 @@ class FlashcardGUI:
                     for deck_json in decks_json:
                         deck_name = deck_json["name"]
                         cards_json = deck_json["cards"]
-                        cur_deck = Deck(deck_name)
-                        cards = []
+                        cur_deck = Deck(cur_category, deck_name)
                         for card_json in cards_json:
                             front = card_json["front"]
                             back = card_json["back"]
-                            cur_card = Flashcard(front, back)
-                            cards.append(cur_card)
-                            cur_deck.add_card(cur_card)
-                        cur_category.add_deck(deck_name)
+                            cur_deck.add_card(front, back)
+                        cur_category.add_deck(cur_deck)
                     categories.append(cur_category)
                 self.app.categories = categories
                 self.update_categories_listbox()
