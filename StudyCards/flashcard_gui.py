@@ -3,6 +3,8 @@ import tkinter as tk
 import tkinter.simpledialog
 import tkinter.filedialog
 
+import tkinter.messagebox
+
 import json
 
 #define the flashcard class
@@ -14,10 +16,12 @@ class Flashcard:
 
 #define the deck class
 class Deck:
-    def __init__(self, category, name):
+    def __init__(self, category, name, askFront, askBack):
         self.name = name
         self.cards = []
         self.category = category
+        self.askFront = askFront
+        self.askBack = askBack
 
     def add_card(self, front, back):
         self.cards.append(Flashcard(self, front, back))
@@ -31,14 +35,30 @@ class Category:
         self.name = name
         self.decks = []
 
-    def add_deck(self, name):
-        self.decks.append(Deck(self, name))
+    def add_deck(self, name, askFront, askBack):
+        self.decks.append(Deck(self, name, askFront, askBack))
 
     def add_deck(self, deck):
         self.decks.append(deck)
 
     def remove_deck(self, index):
         self.decks.pop(index)
+
+class Session:
+    def __init__(self, gui):
+
+        if gui.app.lastDeck:
+
+            deck = gui.app.lastDeck[0]
+
+            front = deck.askFront
+            back = deck.askBack
+
+            gui.session_screen.config(bg = '#aee1e5')
+
+        else:
+            tk.messagebox.showinfo(title = "No Deck", message = "Please select a deck first")
+
 
 #define the application
 class FlashcardApplication:
@@ -119,11 +139,11 @@ class FlashcardGUI:
         self.remove_deck_button = tk.Button(self.deck_frame, text="Remove Deck", command=self.remove_deck)
         self.remove_deck_button.pack(side=tk.TOP)
 
-        self.session_screen = tk.Canvas(self.session_frame)
+        self.session_screen = tk.Canvas(self.session_frame, bg = self.root.cget("bg"))
         self.session_screen.pack(side = tk.TOP)
 
-        self.random_card_button = tk.Button(self.session_frame, text="Random Card", command=self.show_random_card)
-        self.random_card_button.pack(side=tk.TOP)
+        self.start_session_button = tk.Button(self.session_frame, text="Start Session", command = self.start_session)
+        self.start_session_button.pack(side=tk.TOP)
 
         self.cards_listbox = tk.Listbox(self.card_frame)
         self.cards_listbox.pack(side=tk.TOP)
@@ -256,7 +276,7 @@ class FlashcardGUI:
         deck_name = deck_name.get()
 
         if deck_name:
-            newDeck = Deck(self.app.categories[category_index[0]], deck_name)
+            newDeck = Deck(self.app.categories[category_index[0]], deck_name, ask_front_var.get(), ask_back_var.get())
             self.app.add_deck(category_index[0], newDeck)
             self.update_decks_listbox(category_index[0])
             self.app.lastDeck = [newDeck]
@@ -284,9 +304,6 @@ class FlashcardGUI:
                 self.back_textbox.delete("1.0", tk.END)
 
     def remove_card(self):
-
-        deck = self.app.lastDeck
-
         card_index = self.cards_listbox.curselection()
 
         card = deck[0].cards[card_index[0]]
@@ -300,7 +317,11 @@ class FlashcardGUI:
             self.app.remove_card(category_index[0], deck_index[0], card_index[0])
             self.update_cards_listbox(category_index[0], deck_index[0])
 
-    def show_random_card(self):
+    def start_session(self):
+
+        session = Session(self)
+
+        '''
         category_index = self.categories_listbox.curselection()
         deck_index = self.decks_listbox.curselection()
         if category_index and deck_index:
@@ -310,6 +331,7 @@ class FlashcardGUI:
                 tk.messagebox.showinfo(card.front, card.back)
             else:
                 tk.messagebox.showerror("Error", "This deck has no cards.")
+        '''
 
     def save(self):
         file_path = tk.filedialog.asksaveasfilename(defaultextension=".json")
@@ -327,6 +349,8 @@ class FlashcardGUI:
                             })
                         decks_json.append({
                             "name": deck.name,
+                            "askFront": deck.askFront,
+                            "askBack": deck.askBack,
                             "cards": cards_json
                         })
                     categories_json.append({
@@ -347,8 +371,10 @@ class FlashcardGUI:
                     decks_json = category_json["decks"]
                     for deck_json in decks_json:
                         deck_name = deck_json["name"]
+                        deck_askFront = deck_json["askFront"]
+                        deck_askBack = deck_json["askBack"]
                         cards_json = deck_json["cards"]
-                        cur_deck = Deck(cur_category, deck_name)
+                        cur_deck = Deck(cur_category, deck_name, deck_askFront, deck_askBack)
                         for card_json in cards_json:
                             front = card_json["front"]
                             back = card_json["back"]
