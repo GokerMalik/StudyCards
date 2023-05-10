@@ -47,17 +47,131 @@ class Category:
 class Session:
     def __init__(self, gui):
 
+        self.response_window = None
+        self.session_end = 0
+
+        self.gui = gui
+        self.screen = gui.session_screen
+
         if gui.app.lastDeck:
 
-            deck = gui.app.lastDeck[0]
-
-            front = deck.askFront
-            back = deck.askBack
-
-            gui.session_screen.config(bg = '#aee1e5')
+            self.screen.config(bg = '#aee1e5')
+            self.run_session()
 
         else:
             tk.messagebox.showinfo(title = "No Deck", message = "Please select a deck first")
+
+    def run_session(self):
+
+        deck = self.gui.app.lastDeck[0]
+
+        card_list = []
+        for card in deck.cards:
+            card_list.append(card)
+
+        front = deck.askFront
+        back = deck.askBack
+
+        screen_text = self.screen.create_text(100,50,fill="#e1924d",font="Times 20 bold", text="abc")
+
+        while (len(card_list) > 0):
+
+            cur_card = random.choice(card_list)
+
+            sides = [cur_card.front, cur_card.back]
+
+            question_side = 0
+            if (front & back):
+                question_side = random.choice([0,1])
+            elif front:
+                question_side = 0
+            else:
+                question_side = 1
+
+            question = sides[question_side]
+            answer = sides[question_side*(-1)+(1)]
+
+            question_message = self.get_question_message(question)
+            self.screen.itemconfig(screen_text, text=question_message)
+
+            self.response_window = tk.Toplevel(self.gui.root)
+            name_label = tk.Label(self.response_window, text= "Wrack it!")
+            name_label.pack(side = tk.TOP)
+
+            user_response = tk.StringVar()
+            session_end = tk.IntVar()
+            session_end.set(0)
+
+            name_entry = tk.Entry(self.response_window, textvariable=user_response)
+            name_entry.pack(side=tk.TOP)
+
+            response_frame = tk.Frame(self.response_window)
+            response_frame.pack(side = tk.TOP)
+
+            check_button = tk.Button(response_frame, text = 'Check', command=self.response_window.destroy)
+            check_button.pack(side=tk.LEFT)
+
+            check_button = tk.Button(response_frame, text = 'Finish', command=self.end_session)
+            check_button.pack(side=tk.LEFT)
+
+            self.response_window.wait_window(self.response_window)
+
+            if self.session_end == 1:
+                break
+
+            user_response = user_response.get()
+
+            if answer == user_response:
+                card_list.remove(cur_card)
+
+        del self
+
+
+    def end_session(self):
+        self.response_window.destroy()
+        self.session_end = 1
+
+    def get_question_message(self, question):
+        ## Create question card
+
+        if (len(question) > 10):
+            showQuest = ''
+            wordList = question.split(" ")
+            splitList = []
+            
+            for ind in range(len(wordList)):
+                if (len(wordList[ind]) >10):
+
+                    toModify = wordList[ind]
+                    PieceNum = int(len(toModify)/10)+1
+                    wordList.remove(toModify)
+
+                    for count in range(PieceNum):
+                        if (count != PieceNum-1):
+                            toSend = toModify[count*10:(count+1)*10] + "-"
+                            wordList.insert(ind + count, toSend)
+                        else:
+                            toSend = toModify[count*10:]
+                            wordList.insert(ind + count, toSend)
+            
+            splitList.append(wordList[0])
+
+            for word in wordList:
+                if (word != wordList[0]):
+                    if (len(splitList[-1] + " " + word)<=10):
+                        splitList[-1] = splitList[-1] + " " + word
+                    else:
+                        splitList.append(word)
+
+            for piece in splitList:
+                showQuest = showQuest + piece + "\n"
+            showQuest = showQuest[0:showQuest.rfind("\n")]
+
+        else:
+            showQuest = question
+
+        return showQuest
+
 
 
 #define the application
@@ -116,6 +230,12 @@ class FlashcardGUI:
         self.session_frame = tk.Frame(self.mid_frame)
         self.session_frame.pack(side = tk.TOP)
 
+        self.session_card_frame = tk.Frame(self.session_frame)
+        self.session_card_frame.pack(side = tk.TOP)
+
+        self.session_buttons_frame = tk.Frame(self.session_frame)
+        self.session_buttons_frame.pack(side = tk.TOP)
+
         self.card_frame = tk.Frame(self.right_frame)
         self.card_frame.pack(side=tk.TOP)
 
@@ -139,11 +259,11 @@ class FlashcardGUI:
         self.remove_deck_button = tk.Button(self.deck_frame, text="Remove Deck", command=self.remove_deck)
         self.remove_deck_button.pack(side=tk.TOP)
 
-        self.session_screen = tk.Canvas(self.session_frame, bg = self.root.cget("bg"))
+        self.session_screen = tk.Canvas(self.session_card_frame, bg = self.root.cget("bg"))
         self.session_screen.pack(side = tk.TOP)
 
-        self.start_session_button = tk.Button(self.session_frame, text="Start Session", command = self.start_session)
-        self.start_session_button.pack(side=tk.TOP)
+        self.start_session_button = tk.Button(self.session_buttons_frame, text="Start Session", command = self.start_session)
+        self.start_session_button.pack(side=tk.LEFT)
 
         self.cards_listbox = tk.Listbox(self.card_frame)
         self.cards_listbox.pack(side=tk.TOP)
