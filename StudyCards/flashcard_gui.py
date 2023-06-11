@@ -482,7 +482,7 @@ class FlashcardGUI:
         '''
 
     def save(self):
-        file_path = tk.filedialog.asksaveasfilename(defaultextension=".json")
+        file_path = tk.filedialog.asksaveasfilename(defaultextension=".mem")
         if file_path:
             with open(file_path, "w") as f:
                 categories_json = []
@@ -510,7 +510,7 @@ class FlashcardGUI:
     def open(self, file_path):
 
         if len(file_path) <= 0:
-            file_path = tk.filedialog.askopenfilename(defaultextension=".json")
+            file_path = tk.filedialog.askopenfilename(defaultextension=".mem")
 
         if file_path:
             with open(file_path, "r") as f:
