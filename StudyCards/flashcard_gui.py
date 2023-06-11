@@ -94,19 +94,36 @@ class Session:
             question_message = self.get_question_message(question)
             self.screen.itemconfig(screen_text, text=question_message)
 
+            root_getometry_string = self.gui.root.geometry()
+            root_geo = root_getometry_string.split("+")
+            root_size = root_geo[0].split("x")
+            root_width = int(root_size[0])
+            root_height = int(root_size[1])
+            root_x = int(root_geo[1])
+            root_y = int(root_geo[2])
+
             self.response_window = tk.Toplevel(self.gui.root)
+            self.response_window.focus_force()
+            self.response_window.geometry("200x200+" + str(root_width + root_x) + "+" + str(root_y) )
+
+            count_label = tk.Label(self.response_window, text = str(len(card_list)) + " cards left")
+            count_label.pack(side = tk.TOP)
+
             name_label = tk.Label(self.response_window, text= "Wrack it!")
             name_label.pack(side = tk.TOP)
+
+            self.response_window.bind('<Return>', self.question_check)
 
             user_response = tk.StringVar()
             session_end = tk.IntVar()
             session_end.set(0)
 
-            name_entry = tk.Entry(self.response_window, textvariable=user_response)
-            name_entry.pack(side=tk.TOP)
-
             response_frame = tk.Frame(self.response_window)
-            response_frame.pack(side = tk.TOP)
+            response_frame.pack(side = tk.BOTTOM)
+
+            name_entry = tk.Entry(self.response_window, textvariable=user_response)
+            name_entry.focus()
+            name_entry.pack(side=tk.BOTTOM)
 
             check_button = tk.Button(response_frame, text = 'Check', command=self.response_window.destroy)
             check_button.pack(side=tk.LEFT)
@@ -123,9 +140,15 @@ class Session:
 
             if answer == user_response:
                 card_list.remove(cur_card)
+            else:
+                tkinter.messagebox.showinfo("Wrong", "The correct answer was:\n" + answer)
 
+        self.screen.itemconfig(screen_text, text = "")
+        self.screen.config(bg = self.gui.root.cget("bg"))
         del self
 
+    def question_check(self, Event = None):
+        self.response_window.destroy()
 
     def end_session(self):
         self.response_window.destroy()
@@ -207,8 +230,9 @@ class FlashcardApplication:
 
 #Create the interface elements
 class FlashcardGUI:
-    def __init__(self, app):
+    def __init__(self, app, file_path):
         self.app = app
+        self.file_path = file_path
         self.root = tk.Tk()
         self.root.title("Flashcards")
 
@@ -289,11 +313,14 @@ class FlashcardGUI:
         self.menu_bar = tk.Menu(self.root)
         self.file_menu = tk.Menu(self.menu_bar, tearoff=0)
         self.file_menu.add_command(label="Save", command=self.save)
-        self.file_menu.add_command(label="Open", command=self.open)
+        self.file_menu.add_command(label="Open", command=lambda: self.open(self.file_path))
         self.menu_bar.add_cascade(label="File", menu=self.file_menu)
         self.root.config(menu=self.menu_bar)
 
         self.update_categories_listbox()
+
+        if len(self.file_path) > 0:
+            self.open(self.file_path)
 
     def category_select(self, event = None):
         #fall here only when a selection is made. If category deleted, do not fall
@@ -426,11 +453,12 @@ class FlashcardGUI:
     def remove_card(self):
         card_index = self.cards_listbox.curselection()
 
-        card = deck[0].cards[card_index[0]]
-        deck = card.deck
-        category = deck.category
+        deck = self.app.lastDeck
 
-        deck_index = [category.decks.index(deck)]
+        card = deck[0].cards[card_index[0]]
+        category = deck[0].category
+
+        deck_index = [category.decks.index(deck[0])]
         category_index = [self.app.categories.index(category)]
 
         if category_index and deck_index and card_index:
@@ -479,8 +507,11 @@ class FlashcardGUI:
                     })
                 json.dump(categories_json, f)
 
-    def open(self):
-        file_path = tk.filedialog.askopenfilename(defaultextension=".json")
+    def open(self, file_path):
+
+        if len(file_path) <= 0:
+            file_path = tk.filedialog.askopenfilename(defaultextension=".json")
+
         if file_path:
             with open(file_path, "r") as f:
                 categories_json = json.load(f)
