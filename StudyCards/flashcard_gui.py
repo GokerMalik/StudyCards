@@ -1,3 +1,4 @@
+from os import stat
 import random
 import tkinter as tk
 import tkinter.simpledialog
@@ -84,9 +85,9 @@ class Session:
             if (front & back):
                 question_side = random.choice([0,1])
             elif front:
-                question_side = 0
-            else:
                 question_side = 1
+            else:
+                question_side = 0
 
             question = sides[question_side]
             answer = sides[question_side*(-1)+(1)]
@@ -98,7 +99,6 @@ class Session:
             root_geo = root_getometry_string.split("+")
             root_size = root_geo[0].split("x")
             root_width = int(root_size[0])
-            root_height = int(root_size[1])
             root_x = int(root_geo[1])
             root_y = int(root_geo[2])
 
@@ -138,7 +138,7 @@ class Session:
 
             user_response = user_response.get()
 
-            if answer == user_response:
+            if answer.lower() == user_response.lower():
                 card_list.remove(cur_card)
             else:
                 tkinter.messagebox.showinfo("Wrong", "The correct answer was:\n" + answer)
@@ -157,21 +157,21 @@ class Session:
     def get_question_message(self, question):
         ## Create question card
 
-        if (len(question) > 10):
+        if (len(question) > 15):
             showQuest = ''
             wordList = question.split(" ")
             splitList = []
             
             for ind in range(len(wordList)):
-                if (len(wordList[ind]) >10):
+                if (len(wordList[ind]) >15):
 
                     toModify = wordList[ind]
-                    PieceNum = int(len(toModify)/10)+1
+                    PieceNum = int(len(toModify)/15)+1
                     wordList.remove(toModify)
 
                     for count in range(PieceNum):
                         if (count != PieceNum-1):
-                            toSend = toModify[count*10:(count+1)*10] + "-"
+                            toSend = toModify[count*15:(count+1)*15] + "-"
                             wordList.insert(ind + count, toSend)
                         else:
                             toSend = toModify[count*10:]
@@ -181,7 +181,7 @@ class Session:
 
             for word in wordList:
                 if (word != wordList[0]):
-                    if (len(splitList[-1] + " " + word)<=10):
+                    if (len(splitList[-1] + " " + word)<=15):
                         splitList[-1] = splitList[-1] + " " + word
                     else:
                         splitList.append(word)
@@ -263,24 +263,40 @@ class FlashcardGUI:
         self.card_frame = tk.Frame(self.right_frame)
         self.card_frame.pack(side=tk.TOP)
 
-        self.categories_listbox = tk.Listbox(self.category_frame, selectmode=tk.SINGLE)
-        self.categories_listbox.pack(side=tk.TOP)
+        self.category_field = tk.Frame(self.category_frame)
+        self.category_field.pack(side = tk.TOP)
+
+        self.categories_bar = tk.Scrollbar(self.category_field)
+        self.categories_bar.pack(side = tk.RIGHT, fill = tk.Y)
+
+        self.categories_listbox = tk.Listbox(self.category_field, yscrollcommand=self.categories_bar.set, selectmode=tk.SINGLE)
+        self.categories_listbox.pack(side=tk.LEFT)
         self.categories_listbox.bind("<<ListboxSelect>>", self.category_select)
+
+        self.categories_bar.config(command=self.categories_listbox.yview)
 
         self.add_category_button = tk.Button(self.category_frame, text="Add Category", command=self.add_category)
         self.add_category_button.pack(side=tk.TOP)
 
-        self.remove_category_button = tk.Button(self.category_frame, text="Remove Category", command=self.remove_category)
+        self.remove_category_button = tk.Button(self.category_frame, text="Remove Category", state=tk.DISABLED, command=self.remove_category)
         self.remove_category_button.pack(side=tk.TOP)
 
-        self.decks_listbox = tk.Listbox(self.deck_frame, selectmode=tk.SINGLE)
-        self.decks_listbox.pack(side=tk.TOP)
+        self.deck_field = tk.Frame(self.deck_frame)
+        self.deck_field.pack(side = tk.TOP)
+
+        self.decks_bar = tk.Scrollbar(self.deck_field)
+        self.decks_bar.pack(side = tk.RIGHT, fill = tk.Y)
+
+        self.decks_listbox = tk.Listbox(self.deck_field, selectmode=tk.SINGLE)
+        self.decks_listbox.pack(side=tk.LEFT)
         self.decks_listbox.bind("<<ListboxSelect>>", self.deck_select)
 
-        self.add_deck_button = tk.Button(self.deck_frame, text="Add Deck", command=self.add_deck)
+        self.decks_bar.config(command=self.decks_listbox.yview)
+
+        self.add_deck_button = tk.Button(self.deck_frame, text="Add Deck", command=self.add_deck, state = tk.DISABLED)
         self.add_deck_button.pack(side=tk.TOP)
 
-        self.remove_deck_button = tk.Button(self.deck_frame, text="Remove Deck", command=self.remove_deck)
+        self.remove_deck_button = tk.Button(self.deck_frame, text="Remove Deck", command=self.remove_deck, state = tk.DISABLED)
         self.remove_deck_button.pack(side=tk.TOP)
 
         self.session_screen = tk.Canvas(self.session_card_frame, bg = self.root.cget("bg"))
@@ -289,26 +305,38 @@ class FlashcardGUI:
         self.start_session_button = tk.Button(self.session_buttons_frame, text="Start Session", command = self.start_session)
         self.start_session_button.pack(side=tk.LEFT)
 
-        self.cards_listbox = tk.Listbox(self.card_frame)
-        self.cards_listbox.pack(side=tk.TOP)
+        self.card_field = tk.Frame(self.card_frame)
+        self.card_field.pack(side = tk.TOP)
 
-        self.add_card_button = tk.Button(self.card_frame, text="Add Card", command=self.add_card)
+        self.cards_bar = tk.Scrollbar(self.card_field)
+        self.cards_bar.pack(side = tk.RIGHT, fill = tk.Y)
+
+        self.cards_listbox = tk.Listbox(self.card_field)
+        self.cards_listbox.pack(side=tk.LEFT)
+        self.cards_listbox.bind("<<ListboxSelect>>", self.card_select)
+
+        self.cards_bar.config(command=self.cards_listbox.yview)
+
+        self.add_card_button = tk.Button(self.card_frame, text="Add Card", command=self.add_card, state = tk.DISABLED)
         self.add_card_button.pack(side=tk.TOP)
 
-        self.remove_card_button = tk.Button(self.card_frame, text="Remove Card", command=self.remove_card)
+        self.remove_card_button = tk.Button(self.card_frame, text="Remove Card", command=self.remove_card, state = tk.DISABLED)
         self.remove_card_button.pack(side=tk.TOP)
 
-        self.front_label = tk.Label(self.card_frame, text="Front:")
+        self.front_label = tk.Label(self.card_frame, text="Front:", state = tk.DISABLED)
         self.front_label.pack(side=tk.TOP)
 
-        self.front_textbox = tk.Text(self.card_frame, height=5, width=20)
+        self.front_textbox = tk.Text(self.card_frame, height=5, width=20, state = tk.DISABLED)
         self.front_textbox.pack(side=tk.TOP)
 
-        self.back_label = tk.Label(self.card_frame, text="Back:")
+        self.back_label = tk.Label(self.card_frame, text="Back:", state = tk.DISABLED)
         self.back_label.pack(side=tk.TOP)
 
-        self.back_textbox = tk.Text(self.card_frame, height=5, width=20)
+        self.back_textbox = tk.Text(self.card_frame, height=5, width=20, state = tk.DISABLED)
         self.back_textbox.pack(side=tk.TOP)
+
+        self.update_button = tk.Button(self.card_frame, text = "Update", command = self.update_card, state = tk.DISABLED)
+        self.update_button.pack(side = tk.TOP)
 
         self.menu_bar = tk.Menu(self.root)
         self.file_menu = tk.Menu(self.menu_bar, tearoff=0)
@@ -327,7 +355,6 @@ class FlashcardGUI:
         selected_categories = self.categories_listbox.curselection()
 
         if selected_categories:
-
             #get index
             selected_category_index = selected_categories[0]
 
@@ -338,6 +365,19 @@ class FlashcardGUI:
             #set last category
             selected_category = self.app.categories[selected_category_index]
             self.app.lastCategory = [selected_category]
+
+            self.remove_category_button.config(state=tk.NORMAL)
+            self.add_deck_button.config(state = tk.NORMAL)
+
+        elif self.app.lastCategory:
+
+            self.remove_category_button.config(state=tk.NORMAL)
+            self.add_deck_button.config(state = tk.NORMAL)
+
+        else:
+
+            self.remove_category_button.config(state=tk.DISABLED)
+            self.add_deck_button.config(state= tk.DISABLED)
 
     def deck_select(self, event = None):
         #fall here only when a selection is made. If deck deleted, do not fall
@@ -356,6 +396,51 @@ class FlashcardGUI:
             #set last deck
             selected_deck = deck_category.decks[selected_deck_index]
             self.app.lastDeck = [selected_deck]
+
+            #activare remove deck button
+            self.remove_deck_button.config(state = tk.NORMAL)
+            self.add_card_button.config(state = tk.NORMAL)
+
+        elif self.app.lastDeck:
+
+            self.remove_deck_button.config(state = tk.NORMAL)
+            self.add_card_button.config(state = tk.NORMAL)
+
+        else:
+
+            self.remove_deck_button.config(state = tk.DISABLED)
+            self.add_card_button.config(state = tk.DISABLED)
+
+    def card_select(self, event = None):
+        #fall here only when a selection is made. If deck deleted, do not fall
+        selected_cards = self.cards_listbox.curselection()
+
+        if selected_cards:
+            #activare remove deck button
+            self.remove_card_button.config(state = tk.NORMAL)
+            self.update_button.config(state = tk.NORMAL)
+            self.front_textbox.config(state = tk.NORMAL)
+            self.back_textbox.config(state = tk.NORMAL)
+
+            self.front_label.config(state = tk.NORMAL)
+            self.back_label.config(state = tk.NORMAL)
+
+            selected_card_index = selected_cards[0]
+            selected_card = self.app.lastDeck[0].cards[selected_card_index]
+
+            self.front_textbox.delete('1.0', "end-1c")
+            self.front_textbox.insert(tk.END, selected_card.front)
+
+            self.back_textbox.delete('1.0', "end-1c")
+            self.back_textbox.insert(tk.END, selected_card.back)
+
+        else:
+            self.remove_deck_button.config(state = tk.DISABLED)
+            self.update_button.config(state = tk.DISABLED)
+            self.update_button.config(state = tk.DISABLED)
+
+            self.front_textbox.delete('1.0', tk.END)
+            self.back_textbox.delete('1.0', tk.END)
 
     def update_categories_listbox(self):
         self.categories_listbox.delete(0, tk.END)
@@ -377,6 +462,7 @@ class FlashcardGUI:
                 self.cards_listbox.insert(tk.END, card.front)
 
     def add_category(self):
+
         category_name = tk.simpledialog.askstring("Add Category", "Enter a name for the new category:")
         if category_name:
             self.app.add_category(category_name)
@@ -397,7 +483,17 @@ class FlashcardGUI:
         elif self.app.lastCategory:
             category_index = [self.app.categories.index(self.app.lastCategory[0])]
 
+        root_getometry_string = self.root.geometry()
+        root_geo = root_getometry_string.split("+")
+        root_size = root_geo[0].split("x")
+        root_width = int(root_size[0])
+        root_x = int(root_geo[1])
+        root_y = int(root_geo[2])
+
         dialog = tk.Toplevel(self.root)
+        dialog.geometry("200x200+" +  str(root_width + root_x) + "+" + str(root_y))
+        dialog.focus_force()
+
         name_label = tk.Label(dialog, text= "Deck Name:")
         name_label.pack(side = tk.TOP)
 
@@ -405,6 +501,7 @@ class FlashcardGUI:
 
         name_entry = tk.Entry(dialog, textvariable=deck_name)
         name_entry.pack(side=tk.TOP)
+        name_entry.focus()
 
         ask_front_var = tk.BooleanVar(value = True)
         ask_back_var = tk.BooleanVar(value = False)
@@ -438,17 +535,54 @@ class FlashcardGUI:
         self.app.lastDeck = None
 
     def add_card(self):
-        deck_index = self.decks_listbox.curselection()
+
+        if self.decks_listbox.curselection():
+            deck_index = self.decks_listbox.curselection()
+        elif self.app.lastDeck:
+            deck_index = [self.app.lastDeck[0].category.decks.index(self.app.lastDeck[0])]
+
         category_index = [self.app.categories.index(self.app.lastCategory[0])]
 
-        if category_index and deck_index:
-            front_text = self.front_textbox.get("1.0", tk.END).strip()
-            back_text = self.back_textbox.get("1.0", tk.END).strip()
-            if front_text and back_text:
-                self.app.add_card(category_index[0], deck_index[0], front_text, back_text)
-                self.update_cards_listbox(category_index[0], deck_index[0])
-                self.front_textbox.delete("1.0", tk.END)
-                self.back_textbox.delete("1.0", tk.END)
+        root_getometry_string = self.root.geometry()
+        root_geo = root_getometry_string.split("+")
+        root_size = root_geo[0].split("x")
+        root_width = int(root_size[0])
+        root_x = int(root_geo[1])
+        root_y = int(root_geo[2])
+
+        dialog = tk.Toplevel(self.root)
+        dialog.focus_force()
+        dialog.geometry("200x200+" + str(root_width + root_x) + "+" + str(root_y))
+
+        card_front = tk.StringVar()
+        card_back = tk.StringVar()
+
+        front_label = tk.Label(dialog, text= "Card Front:")
+        front_label.pack(side = tk.TOP)
+
+        front_entry = tk.Entry(dialog, textvariable=card_front)
+        front_entry.pack(side=tk.TOP)
+
+        back_label = tk.Label(dialog, text= "Card Back:")
+        back_label.pack(side = tk.TOP)
+
+        back_entry = tk.Entry(dialog, textvariable=card_back)
+        back_entry.pack(side=tk.TOP)
+
+        create_button = tk.Button(dialog, text = 'Create', command=dialog.destroy)
+        create_button.pack(side=tk.TOP)
+
+        front_entry.focus()
+
+        dialog.wait_window(dialog)
+
+        card_front = card_front.get()
+        card_back = card_back.get()
+
+        if card_front and card_back:
+            newCard = Flashcard(self.app.categories[category_index[0]].decks[deck_index[0]], card_front, card_back)
+            self.app.add_card(category_index[0], deck_index[0], card_front, card_back)
+            self.update_cards_listbox(category_index[0], deck_index[0])
 
     def remove_card(self):
         card_index = self.cards_listbox.curselection()
@@ -465,21 +599,36 @@ class FlashcardGUI:
             self.app.remove_card(category_index[0], deck_index[0], card_index[0])
             self.update_cards_listbox(category_index[0], deck_index[0])
 
+
+    def update_card(self):
+
+        deck = self.app.lastDeck
+        category = deck[0].category
+
+        deck_index = [category.decks.index(deck[0])]
+        category_index = [self.app.categories.index(category)]
+
+        if self.cards_listbox.curselection():
+
+            selected_cards = self.cards_listbox.curselection()
+
+            selected_card_index = selected_cards[0]
+            selected_card = self.app.lastDeck[0].cards[selected_card_index]
+
+            selected_card.front = self.front_textbox.get('1.0', "end-1c")
+            selected_card.back = self.back_textbox.get('1.0', "end-1c")
+
+            self.front_textbox.delete('1.0', "end-1c")
+            self.front_textbox.insert(tk.END, selected_card.front)
+
+            self.back_textbox.delete('1.0', "end-1c")
+            self.back_textbox.insert(tk.END, selected_card.back)
+
+            self.update_cards_listbox(category_index[0], deck_index[0])
+
     def start_session(self):
 
         session = Session(self)
-
-        '''
-        category_index = self.categories_listbox.curselection()
-        deck_index = self.decks_listbox.curselection()
-        if category_index and deck_index:
-            deck = self.app.categories[category_index[0]].decks[deck_index[0]]
-            if deck.cards:
-                card = random.choice(deck.cards)
-                tk.messagebox.showinfo(card.front, card.back)
-            else:
-                tk.messagebox.showerror("Error", "This deck has no cards.")
-        '''
 
     def save(self):
         file_path = tk.filedialog.asksaveasfilename(defaultextension=".mem")
