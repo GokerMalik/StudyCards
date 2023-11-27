@@ -654,7 +654,7 @@ class FlashcardGUI:
                         "name": category.name,
                         "decks": decks_json
                     })
-                json.dump(categories_json, f)
+                json.dump(categories_json, f, indent = 1)
 
     def open(self, file_path):
 
