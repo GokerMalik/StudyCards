@@ -1,3 +1,4 @@
+from calendar import c
 from os import stat
 import random
 import tkinter as tk
@@ -73,7 +74,7 @@ class Session:
         front = deck.askFront
         back = deck.askBack
 
-        screen_text = self.screen.create_text(100,50,fill="#e1924d",font="Times 20 bold", text="abc")
+        screen_text = self.screen.create_text(10,10,fill="#e1924d",font="Times 20 bold", text="abc")
 
         while (len(card_list) > 0):
 
@@ -93,7 +94,7 @@ class Session:
             answer = sides[question_side*(-1)+(1)]
 
             question_message = self.get_question_message(question)
-            self.screen.itemconfig(screen_text, text=question_message)
+            self.screen.itemconfig(screen_text, text=question_message, anchor = tk.NW)
 
             root_getometry_string = self.gui.root.geometry()
             root_geo = root_getometry_string.split("+")
@@ -157,31 +158,33 @@ class Session:
     def get_question_message(self, question):
         ## Create question card
 
-        if (len(question) > 15):
+        char_lim = 20
+
+        if (len(question) > char_lim):
             showQuest = ''
             wordList = question.split(" ")
             splitList = []
             
             for ind in range(len(wordList)):
-                if (len(wordList[ind]) >15):
+                if (len(wordList[ind]) >char_lim):
 
                     toModify = wordList[ind]
-                    PieceNum = int(len(toModify)/15)+1
+                    PieceNum = int(len(toModify)/char_lim)+1
                     wordList.remove(toModify)
 
                     for count in range(PieceNum):
                         if (count != PieceNum-1):
-                            toSend = toModify[count*15:(count+1)*15] + "-"
+                            toSend = toModify[count*char_lim:(count+1)*char_lim] + "-"
                             wordList.insert(ind + count, toSend)
                         else:
-                            toSend = toModify[count*10:]
+                            toSend = toModify[count*char_lim:]
                             wordList.insert(ind + count, toSend)
             
             splitList.append(wordList[0])
 
             for word in wordList:
                 if (word != wordList[0]):
-                    if (len(splitList[-1] + " " + word)<=15):
+                    if (len(splitList[-1] + " " + word)<=char_lim):
                         splitList[-1] = splitList[-1] + " " + word
                     else:
                         splitList.append(word)
